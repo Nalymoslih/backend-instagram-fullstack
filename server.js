@@ -4,6 +4,9 @@ const { db } = require("./index.js");
 const app = express();
 app.use(express.json());
 
+var http = require("http").createServer(app);
+var io = require("socket.io")(http);
+
 app.get("/api/data", (req, res) => {
   const query = "SELECT * FROM users";
   console.log("query", query);
