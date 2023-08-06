@@ -1,11 +1,9 @@
 const express = require("express");
-const mysql = require("mysql");
-const { db } = require("./index.js");
+// const mysql = require("mysql");
 const app = express();
 app.use(express.json());
 
-var http = require("http").createServer(app);
-var io = require("socket.io")(http);
+const { db } = require("./index");
 
 app.get("/api/data", (req, res) => {
   const query = "SELECT * FROM users";
@@ -31,7 +29,50 @@ app.get("/api/messages", (req, res) => {
 });
 
 app.get("/api/relationship", (req, res) => {
-  const query = "SELECT * FROM relationship";
+  const query = "SELECT * FROM user_relationships";
+  db.query(query, (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Database query failed" });
+    } else {
+      res.status(200).json(results);
+    }
+  });
+});
+
+app.post("/api/data", (req, res) => {
+  const userData = req.body; // Assuming you're sending user data in the request body
+  const query =
+    "INSERT INTO users (user_name, phone, email, password) VALUES (?, ?, ?, ?)";
+
+  const { user_name, phone, email, password } = userData;
+
+  db.query(query, [user_name, phone, email, password], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Database query failed" });
+    } else {
+      res.status(200).json({ message: "User data inserted successfully" });
+    }
+  });
+});
+
+app.post("/api/rooms", (req, res) => {
+  const roomData = req.body;
+  const query = "INSERT INTO chat_rooms (name) VALUES (?)";
+
+  const { name } = roomData;
+
+  db.query(query, [name], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Database query failed" });
+    } else {
+      res.status(200).json({ message: "Chat room created successfully" });
+    }
+  });
+});
+
+// Get all chat rooms
+app.get("/api/rooms", (req, res) => {
+  const query = "SELECT * FROM chat_rooms";
   db.query(query, (err, results) => {
     if (err) {
       res.status(500).json({ error: "Database query failed" });
