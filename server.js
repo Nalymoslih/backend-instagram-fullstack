@@ -4,6 +4,23 @@ const app = express();
 app.use(express.json());
 
 const { db } = require("./index");
+const http = require("http");
+
+const socketIO = require("socket.io")(http, {
+  cors: {
+    origin: "<http://localhost:8000>",
+  },
+});
+
+//👇🏻 Add this before the app.get() block
+socketIO.on("connection", (socket) => {
+  console.log(`⚡: ${socket.id} user just connected!`);
+
+  socket.on("disconnect", () => {
+    socket.disconnect();
+    console.log("🔥: A user disconnected");
+  });
+});
 
 app.get("/api/data", (req, res) => {
   const query = "SELECT * FROM users";
