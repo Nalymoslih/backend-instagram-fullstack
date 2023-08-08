@@ -8,22 +8,28 @@ const router = express.Router();
 const { db } = require("./index");
 const { hashPassword, checkPassword, generateToken } = require("./auth");
 const http = require("http");
+// const { log } = require("console");
 
 router.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
-router.post("/api/signup", (req, res) => {
-  const { email, user_name, password } = req.body;
+router.post("/api/signup", async (req, res) => {
+  const { email, username, password } = req.body;
 
+  const hashedPassword = await hashPassword(password);
+  console.log(hashPassword);
   console.log("req.body", req.body);
+
   const query =
-    "INSERT INTO users (email,user_name, password) VALUES (?, ?, ?)";
+    "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+  const values = [username, email, hashedPassword];
 
   // Hash and salt the password before storing it in the database
 
-  return db.query(query, [user_name, email, password], (err, results) => {
+  db.query(query, values, (err, results) => {
     if (err) {
+      console.error("Database query error:", err);
       res.status(500).json({ error: "Database query failed" });
     } else {
       res.status(200).json({ message: "User registered successfully" });
@@ -31,13 +37,15 @@ router.post("/api/signup", (req, res) => {
   });
 });
 
-app.use("/api", router);
+// app.use("/api", router);
 // Login route
 app.post("/api/login", (req, res) => {
-  const { user_name, password } = req.body;
-  const query = "SELECT * FROM users WHERE user_name = ?";
+  const { username, password } = req.body;
+  console.log("req.body", req.body);
+  const query = "SELECT * FROM users WHERE email = ?";
 
-  db.query(query, [user_name], (err, results) => {
+  db.query(query, [username], (err, results) => {
+    console.log({ results });
     if (err) {
       res.status(500).json({ error: "Database query failed" });
     } else {
@@ -48,6 +56,10 @@ app.post("/api/login", (req, res) => {
         if (checkPassword(password, user.password)) {
           // Generate a token and send it to the client for future authentication
           const token = generateToken(user.id);
+
+          // Set the Content-Type header to indicate JSON response
+          res.setHeader("Content-Type", "application/json");
+
           res.status(200).json({ token });
         } else {
           res.status(401).json({ error: "Invalid password" });
@@ -56,6 +68,8 @@ app.post("/api/login", (req, res) => {
     }
   });
 });
+
+app.use("/api", router);
 
 app.get("/api/data", (req, res) => {
   const query = "SELECT * FROM users";
@@ -94,11 +108,11 @@ app.get("/api/relationship", (req, res) => {
 app.post("/api/data", (req, res) => {
   const userData = req.body; // Assuming you're sending user data in the request body
   const query =
-    "INSERT INTO users (user_name, phone, email, password) VALUES (?, ?, ?, ?)";
+    "INSERT INTO users (username, phone, email, password) VALUES (?, ?, ?, ?)";
 
-  const { user_name, phone, email, password } = userData;
+  const { username, phone, email, password } = userData;
 
-  db.query(query, [user_name, phone, email, password], (err, results) => {
+  db.query(query, [username, phone, email, password], (err, results) => {
     if (err) {
       res.status(500).json({ error: "Database query failed" });
     } else {
