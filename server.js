@@ -3,22 +3,57 @@ const express = require("express");
 const app = express();
 app.use(express.json());
 
+const router = express.Router();
+
 const { db } = require("./index");
+const { hashPassword, checkPassword, generateToken } = require("./auth");
 const http = require("http");
 
-const socketIO = require("socket.io")(http, {
-  cors: {
-    origin: "<http://localhost:8000>",
-  },
+router.get("/", (req, res) => {
+  res.send("Hello World!");
 });
 
-//👇🏻 Add this before the app.get() block
-socketIO.on("connection", (socket) => {
-  console.log(`⚡: ${socket.id} user just connected!`);
+router.post("/api/signup", (req, res) => {
+  const { email, user_name, password } = req.body;
 
-  socket.on("disconnect", () => {
-    socket.disconnect();
-    console.log("🔥: A user disconnected");
+  console.log("req.body", req.body);
+  const query =
+    "INSERT INTO users (email,user_name, password) VALUES (?, ?, ?)";
+
+  // Hash and salt the password before storing it in the database
+
+  return db.query(query, [user_name, email, password], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Database query failed" });
+    } else {
+      res.status(200).json({ message: "User registered successfully" });
+    }
+  });
+});
+
+app.use("/api", router);
+// Login route
+app.post("/api/login", (req, res) => {
+  const { user_name, password } = req.body;
+  const query = "SELECT * FROM users WHERE user_name = ?";
+
+  db.query(query, [user_name], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: "Database query failed" });
+    } else {
+      if (results.length === 0) {
+        res.status(401).json({ error: "User not found" });
+      } else {
+        const user = results[0];
+        if (checkPassword(password, user.password)) {
+          // Generate a token and send it to the client for future authentication
+          const token = generateToken(user.id);
+          res.status(200).json({ token });
+        } else {
+          res.status(401).json({ error: "Invalid password" });
+        }
+      }
+    }
   });
 });
 
