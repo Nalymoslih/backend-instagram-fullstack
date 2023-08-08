@@ -3,27 +3,27 @@ var mysql = require("mysql2");
 var con = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "12345678",
-  database: "instagram",
+  password: "",
+  database: "instagramClone",
 });
 
 con.connect(function (err) {
   if (err) throw err;
   console.log("Connected!");
 
-  //   var chat_rooms = `CREATE TABLE chat_rooms (
+  // var chat_rooms = `CREATE TABLE chat_rooms (
   //     id INT AUTO_INCREMENT PRIMARY KEY,
   //     name VARCHAR(255) NOT NULL,
   //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   //   )`;
 
-  //   con.query(chat_rooms, (err) => {
-  //     if (err) {
-  //       console.error("Error creating chat_rooms table:", err);
-  //     } else {
-  //       console.log("chat_rooms table created");
-  //     }
-  //   });
+  // con.query(chat_rooms, (err) => {
+  //   if (err) {
+  //     console.error("Error creating chat_rooms table:", err);
+  //   } else {
+  //     console.log("chat_rooms table created");
+  //   }
+  // });
 
   // var createUserTable = `
   //   CREATE TABLE IF NOT EXISTS users (
