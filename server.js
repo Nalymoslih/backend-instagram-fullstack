@@ -14,6 +14,19 @@ router.get("/", (req, res) => {
   res.send("Hello World!");
 });
 
+// const router = express.Router();
+
+// Define the API route to check authentication status
+// router.get("/check-auth", (req, res) => {
+//   // Assuming you have middleware to handle authentication and set req.user
+//   // Check if user is authenticated based on req.user or any other method
+//   if (req.user) {
+//     res.status(200).json({ isLoggedIn: true });
+//   } else {
+//     res.status(200).json({ isLoggedIn: false });
+//   }
+// });
+
 router.post("/api/signup", async (req, res) => {
   const { email, username, password } = req.body;
 
@@ -60,7 +73,7 @@ app.post("/api/login", (req, res) => {
           // Set the Content-Type header to indicate JSON response
           res.setHeader("Content-Type", "application/json");
 
-          res.status(200).json({ token });
+          res.status(200).json({ token, username });
         } else {
           res.status(401).json({ error: "Invalid password" });
         }
