@@ -53,11 +53,13 @@ router.post("/api/signup", async (req, res) => {
 // app.use("/api", router);
 // Login route
 app.post("/api/login", (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
   console.log("req.body", req.body);
+  // console.log(username);
+
   const query = "SELECT * FROM users WHERE email = ?";
 
-  db.query(query, [username], (err, results) => {
+  db.query(query, [email], (err, results) => {
     console.log({ results });
     if (err) {
       res.status(500).json({ error: "Database query failed" });
@@ -73,7 +75,7 @@ app.post("/api/login", (req, res) => {
           // Set the Content-Type header to indicate JSON response
           res.setHeader("Content-Type", "application/json");
 
-          res.status(200).json({ token, username });
+          res.status(200).json({ token, email });
         } else {
           res.status(401).json({ error: "Invalid password" });
         }
