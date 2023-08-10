@@ -65,4 +65,29 @@ router.get("/logout", (req, res) => {
   res.redirect("/auth/login");
 });
 
+router.post("/posts", (req, res) => {
+  const { title, content } = req.body;
+
+  if (!title || !content) {
+    return res.status(400).json({ message: "Title and content are required." });
+  }
+
+  const post = {
+    title,
+    content,
+  };
+
+  const query = "INSERT INTO posts SET ?";
+  db.query(query, post, (err, result) => {
+    if (err) {
+      console.error("Error inserting post:", err);
+      res
+        .status(500)
+        .json({ message: "An error occurred while inserting the post." });
+    } else {
+      res.status(201).json({ message: "Post inserted successfully." });
+    }
+  });
+});
+
 module.exports = router;
