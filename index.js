@@ -1,87 +1,107 @@
-var mysql = require("mysql2");
+const express = require("express");
+// const bodyParser = require("body-parser");
+const app = express();
+const routes = require("./routes");
+const { db } = require("./config/db");
+const io = require("socket.io")(3001, {
+  cors: {
+    origin: "http://localhost:8000",
+    methods: ["GET", "POST"],
+  },
+});
+// Middleware
+// app.use(bodyParser.urlencoded({ extended: true }));
 
-var con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "instagramClone",
+// Routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/api", routes);
+// Inside the Socket.io connection handler
+io.on("connection", (socket) => {
+  socket.on("join", (room) => {
+    socket.join(room);
+    db.query(
+      "SELECT * FROM messages WHERE room_id = ? ORDER BY timestamp DESC",
+      [room],
+      (error, results) => {
+        if (error) {
+          console.error("Error retrieving messages:", error);
+        } else {
+          console.log("Messages retrieved from database:", results);
+          io.emit("messages", results);
+        }
+      }
+    );
+  });
+
+  socket.on("message", async (data) => {
+    try {
+      const { senderId, receiverId, room, message } = data;
+      // Check if the sender and receiver are participants of the room
+      const participants = await getRoomParticipants(room);
+
+      if (
+        participants.includes(senderId) &&
+        participants.includes(receiverId)
+      ) {
+        // Store the message in the database
+        db.query(
+          "INSERT INTO messages (sender_id, receiver_id, room_id, message) VALUES (?, ?, ?, ?)",
+          [senderId, receiverId, room, message],
+          (error, result) => {
+            if (error) {
+              console.error("Error storing message:", error);
+            } else {
+              console.log("Message stored in the database:", result.insertId);
+              const message = db.query(
+                "SELECT * FROM messages WHERE id = ?",
+                [result.insertId],
+                (error, result) => {
+                  if (error) {
+                    console.error("Error retrieving message:", error);
+                  } else {
+                    console.log("Message retrieved from database:", result[0]);
+
+                    io.emit("message", result[0]);
+                  }
+                }
+              );
+            }
+          }
+        );
+      } else {
+        console.log("fuyck off");
+      }
+    } catch (error) {
+      console.error("Error handling message:", error);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("A user disconnected:", socket.id);
+  });
 });
 
-con.connect(function (err) {
-  if (err) throw err;
-  console.log("Connected!");
+// Function to retrieve room participants
+async function getRoomParticipants(roomId) {
+  return new Promise((resolve, reject) => {
+    db.query(
+      "SELECT user_id FROM room_participants WHERE room_id = ?",
+      [roomId],
+      (error, results) => {
+        if (error) {
+          reject(error);
+        } else {
+          const participants = results.map((row) => row.user_id);
+          resolve(participants);
+        }
+      }
+    );
+  });
+}
 
-  // var chat_rooms = `CREATE TABLE chat_rooms (
-  //     id INT AUTO_INCREMENT PRIMARY KEY,
-  //     name VARCHAR(255) NOT NULL,
-  //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  //   )`;
-
-  // con.query(chat_rooms, (err) => {
-  //   if (err) {
-  //     console.error("Error creating chat_rooms table:", err);
-  //   } else {
-  //     console.log("chat_rooms table created");
-  //   }
-  // });
-
-  // var createUserTable = `
-  //   CREATE TABLE IF NOT EXISTS users (
-  //     id INT AUTO_INCREMENT PRIMARY KEY,
-  //     user_name VARCHAR(255),
-  //     phone VARCHAR(255),
-  //     email VARCHAR(255),
-  //     password VARCHAR(255)
-  //   )
-  // `;
-
-  // const createMessagesTable = `
-  //   CREATE TABLE IF NOT EXISTS messages (
-  //     id INT AUTO_INCREMENT PRIMARY KEY,
-  //     sender_id INT NOT NULL,
-  //     recipient_id INT NOT NULL,
-  //     content TEXT NOT NULL,
-  //     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  //     FOREIGN KEY (sender_id) REFERENCES users(id),
-  //     FOREIGN KEY (recipient_id) REFERENCES users(id)
-  //   )
-  // `;
-
-  // const createPostsTable = `
-
-  // CREATE TABLE user_relationships (
-  //   follower_id INT NOT NULL,
-  //   following_id INT NOT NULL,
-  //   PRIMARY KEY (follower_id, following_id),
-  //   FOREIGN KEY (follower_id) REFERENCES users(id),
-  //   FOREIGN KEY (following_id) REFERENCES users(id)
-  // )
-  // `;
-  // con.query(createPostsTable, (err) => {
-  //   if (err) {
-  //     console.error("Error creating Posts table:", err);
-  //   } else {
-  //     console.log("Posts table created");
-  //   }
-  // });
-
-  // con.query(createUserTable, (err) => {
-  //   if (err) {
-  //     console.error("Error creating Users table:", err);
-  //   } else {
-  //     console.log("Users table created");
-  //   }
-  // });
-
-  // con.query(createMessagesTable, (err) => {
-  //   if (err) {
-  //     console.error("Error creating Messages table:", err);
-  //   } else {
-  //     console.log("Messages table created");
-  //   }
-  // });
+// Start the server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
-
-module.exports = {
-  db: con,
-};
