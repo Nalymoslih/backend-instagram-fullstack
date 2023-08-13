@@ -94,4 +94,16 @@ router.post("/addPost", async (req, res) => {
   return res.json({ success: true, message: "Post added successfully." });
 });
 
+router.get("/posts", (req, res) => {
+  const query = "SELECT * FROM posts";
+  db.query(query, (error, results) => {
+    if (error) {
+      res.status(500).send({ error: "Error fetching posts." });
+    } else {
+      console.log(results, "results");
+      res.json(results);
+    }
+  });
+});
+
 module.exports = router;
