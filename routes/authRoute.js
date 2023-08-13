@@ -3,6 +3,8 @@ const router = express.Router();
 const authService = require("../services/authService");
 const bcrypt = require("bcrypt");
 const dayjs = require("dayjs");
+const { db } = require("../config/db");
+
 // Register
 router.post("/register", (req, res) => {
   console.log(req);
@@ -65,29 +67,31 @@ router.get("/logout", (req, res) => {
   res.redirect("/auth/login");
 });
 
-router.post("/posts", (req, res) => {
-  const { title, content } = req.body;
+router.post("/addPost", async (req, res) => {
+  const { caption, imageUrl } = req.body;
+  console.log(req.body, "req.body");
 
-  if (!title || !content) {
-    return res.status(400).json({ message: "Title and content are required." });
+  if (!caption || !imageUrl) {
+    return res
+      .status(400)
+      .json({ error: "Both caption and imageUrl are required." });
   }
 
-  const post = {
-    title,
-    content,
-  };
+  // // Add the post to our "database"
+  // db.query("INSERT INTO posts (text, image_url) VALUES (?, ?)", [
+  //   caption,
+  //   imageUrl,
+  // ]);
 
-  const query = "INSERT INTO posts SET ?";
-  db.query(query, post, (err, result) => {
-    if (err) {
-      console.error("Error inserting post:", err);
-      res
-        .status(500)
-        .json({ message: "An error occurred while inserting the post." });
-    } else {
-      res.status(201).json({ message: "Post inserted successfully." });
+  db.query(
+    "INSERT INTO posts (image_url, text) VALUES (?, ?)",
+    [imageUrl, caption],
+    (error, result) => {
+      console.log(error, result);
     }
-  });
+  );
+
+  return res.json({ success: true, message: "Post added successfully." });
 });
 
 module.exports = router;
